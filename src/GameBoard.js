@@ -30,13 +30,24 @@ const GameBoard = () => {
   }
 
   function isTerminal(board) {
-    const isBoardFull = board.every(row => row.every(cell => cell !== null));
-    if (isBoardFull) {
-      return 'tie';
+    return checkVertical(board) || (board.every(row => row.every(cell => cell !== null)) && 'tie');
+  }
+
+  function checkVertical(board) {
+    // Check only for vertical win
+    for (let col = 0; col < 7; col++) {
+      for (let row = 0; row < 3; row++) {
+        if (board[row][col] !== null &&
+            board[row][col] === board[row + 1][col] &&
+            board[row][col] === board[row + 2][col] &&
+            board[row][col] === board[row + 3][col]) {
+          return board[row][col];
+        }
+      }
     }
-    // Placeholder for checking win condition
     return null;
   }
+  
 
   const handleColumnClick = (columnIndex) => {
     if (currentPlayer !== 'human') return;
