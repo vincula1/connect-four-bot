@@ -82,6 +82,18 @@
   margin: 20px auto;
 }
 
+.column {
+  display: flex;
+  flex-direction: column-reverse;
+  cursor: pointer;
+}
+
+.row {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+
 /* Cell styling */
 .cell {
   width: 100px;
@@ -89,8 +101,25 @@
   background-color: #ddd;
   border: 2px solid #333;
   border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: relative;
+}
+
+.token {
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+
+.human-token {
+  background-color: red; 
+}
+
+.ai-token {
+  background-color: yellow;
 }
 

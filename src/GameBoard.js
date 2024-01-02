@@ -1,54 +1,76 @@
 import React, { useState, useEffect } from 'react';
 
-
 const GameBoard = () => {
-    const [board, setBoard] = useState(createEmptyBoard());
-    const [currentPlayer, setCurrentPlayer] = useState('human');
+  const [board, setBoard] = useState(createEmptyBoard());
+  const [currentPlayer, setCurrentPlayer] = useState('human');
 
-    // Create a board 7x6 grid
-    function createEmptyBoard() {
-        return Array(6).fill(null).map(() => Array(7).fill(null));
+  function createEmptyBoard() {
+    return Array(6).fill(null).map(() => Array(7).fill(null));
+  }
+
+  function getValidColumns(board) {
+    const validColumns = [];
+    for (let col = 0; col < 7; col++) {
+      if (board[0][col] === null) {
+        validColumns.push(col);
+      }
     }
+    return validColumns;
+  }
 
-    const handleColumnClick = (columnIndex) => {
-        // This function is to find the lowest empty cell on click
-        if (currentPlayer !== 'human') return;
-        const newBoard = [...board];
-        for (let row = board.length - 1; row >= 0; row--) {
-            if (!newBoard[row][columnIndex]) {
-                newBoard[row][columnIndex] = currentPlayer;
-                break;
-            }
-        }
-    
-        setBoard(newBoard);
-        // Switch turns to the other player
-    };
+  function dropToken(board, column, player) {
+    const newBoard = board.map(row => [...row]);
+    for (let row = newBoard.length - 1; row >= 0; row--) {
+      if (!newBoard[row][column]) {
+        newBoard[row][column] = player;
+        break;
+      }
+    }
+    return newBoard;
+  }
 
-    const handleAIMove = () => {
-        // This will contain the minimax algoritm and switch players to human once played.
-    };
+  function isTerminal(board) {
+    const isBoardFull = board.every(row => row.every(cell => cell !== null));
+    if (isBoardFull) {
+      return 'tie';
+    }
+    // Placeholder for checking win condition
+    return null;
+  }
 
-    useEffect(() => {
-        if (currentPlayer === 'ai') {
-            handleAIMove();
-        }
-    }, [currentPlayer]);
+  const handleColumnClick = (columnIndex) => {
+    if (currentPlayer !== 'human') return;
+    const newBoard = dropToken(board, columnIndex, 'human');
+    setBoard(newBoard);
+    setCurrentPlayer('ai');
+  };
 
-    
-    return (
-        <div className="board">
-            {board.map((row, rowIndex) => (
-                <div key={rowIndex} className="row">
-                    {row.map((cell, columnIndex) => (
-                        <div key={columnIndex} className="cell" onClick={() => handleColumnClick(columnIndex)}>
-                            {/* Display player token */}
-                        </div>
-                    ))}
-                </div>
-            ))}
-        </div>
-    );
+  const handleAIMove = () => {
+    const validColumns = getValidColumns(board);
+    const randomColumn = validColumns[Math.floor(Math.random() * validColumns.length)];
+    const newBoard = dropToken(board, randomColumn, 'ai');
+    setBoard(newBoard);
+    setCurrentPlayer('human');
+  };
+
+  useEffect(() => {
+    if (currentPlayer === 'ai') {
+      handleAIMove();
+    }
+  }, [currentPlayer, board]);
+
+  return (
+    <div className="board">
+      {board.map((row, rowIndex) => (
+        row.map((cell, columnIndex) => (
+          <div key={`${rowIndex}-${columnIndex}`} className="cell" onClick={() => handleColumnClick(columnIndex)}>
+            {cell === 'human' && <div className="token human-token"></div>}
+            {cell === 'ai' && <div className="token ai-token"></div>}
+          </div>
+        ))
+      ))}
+    </div>
+  );
 };
 
 export default GameBoard;
