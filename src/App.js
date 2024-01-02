@@ -1,14 +1,14 @@
 import React from 'react';
 import './App.css';
-import GameBoard from './GameBoard';
+import GameBoard from './GameBoard'; // Import your GameBoard component
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
+    <div className="app-container">
+      <header className="app-header">
         <h1>Connect Four Game</h1>
       </header>
-      <div className="Game-area">
+      <div className="game-container">
         <GameBoard />
       </div>
     </div>
@@ -16,3 +16,4 @@ function App() {
 }
 
 export default App;
+

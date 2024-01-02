@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 
 const GameBoard = () => {
     const [board, setBoard] = useState(createEmptyBoard());
@@ -23,6 +24,17 @@ const GameBoard = () => {
         setBoard(newBoard);
         // Switch turns to the other player
     };
+
+    const handleAIMove = () => {
+        // This will contain the minimax algoritm and switch players to human once played.
+    };
+
+    useEffect(() => {
+        if (currentPlayer === 'ai') {
+            handleAIMove();
+        }
+    }, [currentPlayer]);
+
     
     return (
         <div className="board">
