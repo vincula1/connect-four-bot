@@ -165,6 +165,7 @@ const GameBoard = () => {
 
   return (
     <div className="game-container">
+      {gameOver && <div className="backdrop" onClick={resetGame}></div>}
       {renderGameOverPopup()}
       <div className="board">
         {board.map((row, rowIndex) => (
