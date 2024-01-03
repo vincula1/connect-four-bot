@@ -19,6 +19,8 @@ const GameBoard = () => {
         }
       }
     }
+
+    return false;
   }
   
   function checkVerticalWin(board, player) {
@@ -32,6 +34,8 @@ const GameBoard = () => {
         }
       }
     }
+
+    return false;
   }
   
   function checkDiagonalWin(board, player) {
@@ -45,6 +49,8 @@ const GameBoard = () => {
         }
       }
     }
+
+    return false;
   }
   
   function checkWin(board, player) {
@@ -76,29 +82,29 @@ const GameBoard = () => {
   
     if (isMaximizing) {
       let maxEval = -Infinity;
-      getValidColumns(board).forEach(column => {
-        let newBoard = dropToken(board, column, 'ai');
-        let score = minimax(newBoard, depth - 1, alpha, beta, false);
-        maxEval = Math.max(maxEval, score);
-        alpha = Math.max(alpha, score);
-        if (beta <= alpha) {
-          return; // Beta cut-off
-        }
-      });
+      for (const column of getValidColumns(board)) {
+          let newBoard = dropToken(board, column, 'ai');
+          let score = minimax(newBoard, depth - 1, alpha, beta, false);
+          maxEval = Math.max(maxEval, score);
+          alpha = Math.max(alpha, score);
+          if (beta <= alpha) {
+              break; // Beta cut-off
+          }
+      }
       return maxEval;
-    } else {
+  } else {
       let minEval = Infinity;
-      getValidColumns(board).forEach(column => {
-        let newBoard = dropToken(board, column, 'human');
-        let score = minimax(newBoard, depth - 1, alpha, beta, true);
-        minEval = Math.min(minEval, score);
-        beta = Math.min(beta, score);
-        if (beta <= alpha) {
-          return; // Alpha cut-off
-        }
-      });
+      for (const column of getValidColumns(board)) {
+          let newBoard = dropToken(board, column, 'human');
+          let score = minimax(newBoard, depth - 1, alpha, beta, true);
+          minEval = Math.min(minEval, score);
+          beta = Math.min(beta, score);
+          if (beta <= alpha) {
+              break; // Alpha cut-off
+          }
+      }
       return minEval;
-    }
+   }  
   }
   
   
@@ -134,28 +140,33 @@ const GameBoard = () => {
   };
 
   const handleAIMove = () => {
-    setTimeout(() => {
-      let bestScore = -Infinity;
-      let bestMove = null;
-      const depth = 1
-      getValidColumns(board).forEach(column => {
-        let newBoard = dropToken(board, column, 'ai');
-        let score = minimax(newBoard, depth, -Infinity, Infinity, false); // Reduced depth for testing
-        if (score > bestScore) {
-          bestScore = score;
-          bestMove = column;
+    console.log("Main Thread: Handling AI move");
+    const worker = new Worker(`${process.env.PUBLIC_URL}/aiWorker.js`);
+
+    worker.postMessage({ board: board, depth: 2 });
+
+    worker.onmessage = function(e) {
+        if (e.data && e.data.error) {
+            // Error if something is wrong with worker
+            console.error("Main Thread: Error from AI Worker", e.data.error);
+            // Making a default move and giving error
+        } else {
+            // If there is no error, then....
+            console.log("Main Thread: Best move received from AI Worker", e.data);
+            const bestMove = e.data;
+            if (bestMove !== null) {
+                const newBoard = dropToken(board, bestMove, 'ai');
+                setBoard(newBoard);
+                setCurrentPlayer('human');
+            } else {
+                // Handle the case where bestMove is null
+                console.log("Main Thread: Received null as the best move from AI Worker");
+            }
         }
-      });
-  
-      if (bestMove !== null) {
-        let newBoard = dropToken(board, bestMove, 'ai');
-        setBoard(newBoard);
-        setCurrentPlayer('human');
-      }
-    }, 0);
-  };
-  
-  
+        worker.terminate();
+    };
+};
+
 
   useEffect(() => {
     if (currentPlayer === 'ai') {
