@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 const GameBoard = () => {
   const [board, setBoard] = useState(createEmptyBoard());
   const [currentPlayer, setCurrentPlayer] = useState('human');
+  const [gameOver, setGameOver] = useState(false);
+  const [winner, setWinner] = useState(null);
 
   function createEmptyBoard() {
     return Array(6).fill(null).map(() => Array(7).fill(null));
@@ -70,55 +72,6 @@ const GameBoard = () => {
     }
     return null;
   }
-  
-  
-  function minimax(board, depth, alpha, beta, isMaximizing) {
-    const terminalVal = isTerminal(board);
-    if (depth === 0 || terminalVal !== null) {
-      if (terminalVal === 'ai') return 1000;
-      if (terminalVal === 'human') return -1000;
-      if (terminalVal === 'tie') return 0;
-    }
-  
-    if (isMaximizing) {
-      let maxEval = -Infinity;
-      for (const column of getValidColumns(board)) {
-          let newBoard = dropToken(board, column, 'ai');
-          let score = minimax(newBoard, depth - 1, alpha, beta, false);
-          maxEval = Math.max(maxEval, score);
-          alpha = Math.max(alpha, score);
-          if (beta <= alpha) {
-              break; // Beta cut-off
-          }
-      }
-      return maxEval;
-  } else {
-      let minEval = Infinity;
-      for (const column of getValidColumns(board)) {
-          let newBoard = dropToken(board, column, 'human');
-          let score = minimax(newBoard, depth - 1, alpha, beta, true);
-          minEval = Math.min(minEval, score);
-          beta = Math.min(beta, score);
-          if (beta <= alpha) {
-              break; // Alpha cut-off
-          }
-      }
-      return minEval;
-   }  
-  }
-  
-  
-  
-
-  function getValidColumns(board) {
-    const validColumns = [];
-    for (let col = 0; col < 7; col++) {
-      if (board[0][col] === null) {
-        validColumns.push(col);
-      }
-    }
-    return validColumns;
-  }
 
   function dropToken(board, column, player) {
     const newBoard = board.map(row => [...row]);
@@ -131,59 +84,98 @@ const GameBoard = () => {
     return newBoard;
   }
 
-
   const handleColumnClick = (columnIndex) => {
-    if (currentPlayer !== 'human') return;
+    if (currentPlayer !== 'human' || gameOver) return;
     const newBoard = dropToken(board, columnIndex, 'human');
     setBoard(newBoard);
-    setCurrentPlayer('ai');
+    if (isTerminal(newBoard)) {
+      const winner = isTerminal(newBoard);
+      setGameOver(true);
+      setWinner(winner);
+    } else {
+      checkForWinner(newBoard);
+      setCurrentPlayer('ai');
+    }
   };
-
+  
+  function checkForWinner(updatedBoard) {
+    const winner = isTerminal(updatedBoard);
+    if (winner) {
+      setGameOver(true);
+      setWinner(winner === 'tie' ? null : winner);
+    }
+  }
+  
   const handleAIMove = () => {
     console.log("Main Thread: Handling AI move");
     const worker = new Worker(`${process.env.PUBLIC_URL}/aiWorker.js`);
-
+  
     worker.postMessage({ board: board, depth: 2 });
-
+  
     worker.onmessage = function(e) {
-        if (e.data && e.data.error) {
-            // Error if something is wrong with worker
-            console.error("Main Thread: Error from AI Worker", e.data.error);
-            // Making a default move and giving error
-        } else {
-            // If there is no error, then....
-            console.log("Main Thread: Best move received from AI Worker", e.data);
-            const bestMove = e.data;
-            if (bestMove !== null) {
-                const newBoard = dropToken(board, bestMove, 'ai');
-                setBoard(newBoard);
-                setCurrentPlayer('human');
-            } else {
-                // Handle the case where bestMove is null
-                console.log("Main Thread: Received null as the best move from AI Worker");
-            }
+      worker.terminate();
+      if (e.data && e.data.error) {
+        console.error("Main Thread: Error from AI Worker", e.data.error);
+      } else {
+        console.log("Main Thread: Best move received from AI Worker", e.data);
+        const bestMove = e.data;
+        if (bestMove !== null) {
+          const newBoard = dropToken(board, bestMove, 'ai');
+          setBoard(newBoard);
+          checkForWinner(newBoard); // Add this line
+          setCurrentPlayer('human');
+          if (isTerminal(newBoard)) {
+            const winner = isTerminal(newBoard);
+            setGameOver(true);
+            setWinner(winner);
+          } else {
+            checkForWinner(newBoard);
+            setCurrentPlayer('human');
+          }
         }
-        worker.terminate();
+      }
     };
-};
+  };  
 
+  // Call this function to reset the game
+  function resetGame() {
+    setBoard(createEmptyBoard());
+    setCurrentPlayer('human');
+    setGameOver(false);
+    setWinner(null);
+  }
 
   useEffect(() => {
-    if (currentPlayer === 'ai') {
+    if (currentPlayer === 'ai' && !gameOver) {
       handleAIMove();
     }
-  }, [currentPlayer, board]);
+  }, [currentPlayer, board]);  
+
+  const renderGameOverPopup = () => {
+    console.log('renderGameOverPopup called', gameOver, winner);
+    if (gameOver) {
+      return (
+        <div className="popup">
+          <h2>{winner === 'tie' ? "It's a tie!" : `${winner} wins!`}</h2>
+          <button onClick={resetGame}>Play Again</button>
+        </div>
+      );
+    }
+  };
 
   return (
-    <div className="board">
-      {board.map((row, rowIndex) => (
-        row.map((cell, columnIndex) => (
-          <div key={`${rowIndex}-${columnIndex}`} className="cell" onClick={() => handleColumnClick(columnIndex)}>
-            {cell === 'human' && <div className="token human-token"></div>}
-            {cell === 'ai' && <div className="token ai-token"></div>}
-          </div>
+    <div className="game-container">
+      {renderGameOverPopup()}
+      <div className="board">
+        {board.map((row, rowIndex) => (
+          row.map((cell, columnIndex) => (
+            <div key={`${rowIndex}-${columnIndex}`} className="cell" onClick={() => handleColumnClick(columnIndex)}>
+              {cell === 'human' && <div className="token human-token"></div>}
+              {cell === 'ai' && <div className="token ai-token"></div>}
+            </div>
         ))
       ))}
+    </div>
     </div>
   );
 };

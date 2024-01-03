@@ -1,4 +1,3 @@
-
 self.onmessage = function(e) {
   try {
     console.log("AI Worker: Message received", e.data);
@@ -124,28 +123,37 @@ self.onmessage = function(e) {
     }
     
     function evaluateWindow(window, player) {
-        let score = 0;
-        const aiCount = window.filter(cell => cell === 'ai').length;
-        const humanCount = window.filter(cell => cell === 'human').length;
-        const emptyCount = window.filter(cell => cell === null).length;
-    
-        // Scoring for AI
-        if (aiCount === 3 && emptyCount === 1) score += 5;
-        if (aiCount === 2 && emptyCount === 2) score += 2;
-    
-        // Scoring against Human
-        if (humanCount === 3 && emptyCount === 1) score -= 4;
-    
-        return score;
-    }
+      let score = 0;
+      const aiCount = window.filter(cell => cell === 'ai').length;
+      const humanCount = window.filter(cell => cell === 'human').length;
+      const emptyCount = window.filter(cell => cell === null).length;
+  
+      // Scoring for immediate win
+      if (aiCount === 3 && emptyCount === 1) score += 10000; // Increase the score if 1000 isn't enough
+      // Scoring for immediate block
+      if (humanCount === 3 && emptyCount === 1) score -= 9000; // Slightly less than win score to prioritize winning over blocking
+
+      // Scoring for 3 in a row with an empty space
+      if (aiCount === 3 && emptyCount === 1) score += 50;
+      if (humanCount === 3 && emptyCount === 1) score -= 50;
+
+      // Secondary opportunities
+      if (aiCount === 2 && emptyCount === 2) score += 10;
+      if (humanCount === 2 && emptyCount === 2) score -= 10;
+  
+      return score;
+  }
+  
+  
+  
     
     function minimax(board, depth, alpha, beta, isMaximizing) {
         console.log(`Minimax called with depth: ${depth} and isMaximizing: ${isMaximizing}`);
         const terminalVal = isTerminal(board);
         if (depth === 0 || terminalVal !== null) {
             console.log(`Terminal condition reached with terminal value: ${terminalVal}`);
-            if (terminalVal === 'ai') return 10;
-            if (terminalVal === 'human') return -10;
+            if (terminalVal === 'ai') return 1000;
+            if (terminalVal === 'human') return -1000;
             if (terminalVal === 'tie') return 0;
         }
     
