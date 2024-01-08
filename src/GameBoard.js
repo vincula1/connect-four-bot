@@ -44,6 +44,7 @@ const GameBoard = () => {
   }
   
   function checkDiagonalWin(board, player) {
+    // Diagonal control - Positive slope
     for (let col = 0; col < 4; col++) {
       for (let row = 0; row < 3; row++) {
         if (board[row][col] === player &&
@@ -54,9 +55,23 @@ const GameBoard = () => {
         }
       }
     }
-
+    // Diagonal control - Negative slope
+    for (let col = 0; col < 4; col++) {
+      for (let row = 3; row < 6; row++) {
+        if (board[row][col] === player &&
+            board[row - 1][col + 1] === player &&
+            board[row - 2][col + 2] === player &&
+            board[row - 3][col + 3] === player) {
+          return true;
+        }
+      }
+    }
+  
     return false;
   }
+  
+
+  
   
   function checkWin(board, player) {
     return checkHorizontalWin(board, player) ||
@@ -109,6 +124,7 @@ const GameBoard = () => {
     }
   }
   
+  
   const renderStartPopup = () => {
     if (showStartPopup) {
       return (
@@ -123,7 +139,6 @@ const GameBoard = () => {
   
 
   const handleAIMove = () => {
-    console.log("Main Thread: Handling AI move");
     const worker = new Worker(`${process.env.PUBLIC_URL}/aiWorker.js`);
   
     worker.postMessage({ board: board, depth: 2 });
@@ -131,26 +146,23 @@ const GameBoard = () => {
     worker.onmessage = function(e) {
       worker.terminate();
       if (e.data && e.data.error) {
-        console.error("Main Thread: Error from AI Worker", e.data.error);
       } else {
-        console.log("Main Thread: Best move received from AI Worker", e.data);
         const bestMove = e.data;
         if (bestMove !== null) {
           const newBoard = dropToken(board, bestMove, 'ai');
-          // Directly check for a winner after setting the board
           const potentialWinner = isTerminal(newBoard);
+          setBoard(newBoard);
           if (potentialWinner) {
-            console.log(`AI wins with move at column ${bestMove}`);
             setGameOver(true);
             setWinner(potentialWinner);
           } else {
-            setBoard(newBoard);
             setCurrentPlayer('human');
           }
         }
       }
     };
   };
+  
    
 
   // Call this function to reset the game
@@ -166,10 +178,11 @@ const GameBoard = () => {
     if (winner) {
       setGameOver(true);
       setWinner(winner);
-    } else if (currentPlayer === 'ai') {
+    } else if (currentPlayer === 'ai' && !gameOver) {
       handleAIMove();
     }
-  }, [board, currentPlayer]);
+  }, [board, currentPlayer, gameOver]);
+  
   
 
   const renderGameOverPopup = () => {
