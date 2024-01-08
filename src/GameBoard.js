@@ -1,6 +1,9 @@
+// GameBoard.js
+
 import React, { useState, useEffect } from 'react';
 
 const GameBoard = () => {
+  const [showStartPopup, setShowStartPopup] = useState(true);
   const [board, setBoard] = useState(createEmptyBoard());
   const [currentPlayer, setCurrentPlayer] = useState('human');
   const [gameOver, setGameOver] = useState(false);
@@ -106,6 +109,19 @@ const GameBoard = () => {
     }
   }
   
+  const renderStartPopup = () => {
+    if (showStartPopup) {
+      return (
+        <div className="popup">
+          <h2>This is Laith's Connect 4 Bot</h2>
+          <p>Click start to play and place your piece</p>
+          <button onClick={() => setShowStartPopup(false)}>Start</button>
+        </div>
+      );
+    }
+  };
+  
+
   const handleAIMove = () => {
     console.log("Main Thread: Handling AI move");
     const worker = new Worker(`${process.env.PUBLIC_URL}/aiWorker.js`);
@@ -121,21 +137,21 @@ const GameBoard = () => {
         const bestMove = e.data;
         if (bestMove !== null) {
           const newBoard = dropToken(board, bestMove, 'ai');
-          setBoard(newBoard);
-          checkForWinner(newBoard); // Add this line
-          setCurrentPlayer('human');
-          if (isTerminal(newBoard)) {
-            const winner = isTerminal(newBoard);
+          // Directly check for a winner after setting the board
+          const potentialWinner = isTerminal(newBoard);
+          if (potentialWinner) {
+            console.log(`AI wins with move at column ${bestMove}`);
             setGameOver(true);
-            setWinner(winner);
+            setWinner(potentialWinner);
           } else {
-            checkForWinner(newBoard);
+            setBoard(newBoard);
             setCurrentPlayer('human');
           }
         }
       }
     };
-  };  
+  };
+   
 
   // Call this function to reset the game
   function resetGame() {
@@ -146,25 +162,33 @@ const GameBoard = () => {
   }
 
   useEffect(() => {
-    if (currentPlayer === 'ai' && !gameOver) {
+    const winner = isTerminal(board);
+    if (winner) {
+      setGameOver(true);
+      setWinner(winner);
+    } else if (currentPlayer === 'ai') {
       handleAIMove();
     }
-  }, [currentPlayer, board]);  
+  }, [board, currentPlayer]);
+  
 
   const renderGameOverPopup = () => {
     console.log('renderGameOverPopup called', gameOver, winner);
     if (gameOver) {
+      const message = winner === 'tie' ? "It's a tie!" : `${winner} wins!`;
       return (
         <div className="popup">
-          <h2>{winner === 'tie' ? "It's a tie!" : `${winner} wins!`}</h2>
+          <h2>{message}</h2>
           <button onClick={resetGame}>Play Again</button>
         </div>
       );
     }
   };
+  
 
   return (
     <div className="game-container">
+      {showStartPopup && renderStartPopup()}
       {gameOver && <div className="backdrop" onClick={resetGame}></div>}
       {renderGameOverPopup()}
       <div className="board">
